@@ -16,8 +16,6 @@ class FileOrdering:
         count = 0
         for dirpath, dirnames, filenames in os.walk(self.in_folder):
             for file_name in filenames:
-                count += 1
-                print(file_name)  # TODO выводить в label
                 file_path = os.path.join(dirpath, file_name)
                 file_modify_time = time.gmtime(os.path.getmtime(file_path))
 
@@ -37,27 +35,23 @@ class FileOrdering:
                     new_directory = file_year_month_target_path
                     os.makedirs(name=new_directory, exist_ok=True)
                     shutil.copy2(src=file_path, dst=new_directory)
-
-
-def clear_text():
-    answer = mb.askyesno(title="Вопрос", message="Очистить текстовое поле?")
-    if answer == True:
-        text.delete(1.0, END)
+                count += 1
+                label_information_text['text'] = f'Обработано {count} файлов'
 
 
 def count_file_number(path):
-    count_files = 1
-    label_information_message['text'] = 'Идёт подсчёт количества файлов'
+    count_files = 0
+    label_source_file_count['text'] = 'Идёт подсчёт количества файлов'
     for dirpath, dirnames, filenames in os.walk(path):
         for file_name in filenames:
             count_files += 1
 
-    label_information_message['text'] = f'В этой папке {count_files} файлов'
+    label_source_file_count['text'] = f'В этой папке {count_files} файлов'
 
 
 def choice_source_folder():
     """Метод для выбора исходной папки с файлами через кнопку выбора"""
-    source_path = fd.askdirectory()
+    source_path = fd.askdirectory(title='Выбрать исходную папку')
     if source_path:
         entry_source_folder.delete(0, "end")  # очистка поля для ввода исходной папки
         source_path = os.path.normpath(source_path)
@@ -66,7 +60,7 @@ def choice_source_folder():
 
 def choice_target_folder():
     """Метод для выбора целевой папки с файлами через кнопку выбора"""
-    target_path = fd.askdirectory()
+    target_path = fd.askdirectory(title='Выбрать целевую папку')
     if target_path:
         target_path = os.path.normpath(target_path)
         entry_target_folder.delete(0, "end")  # очистка поля для ввода конечной папки
@@ -77,10 +71,12 @@ def arrange_files(source_folder, target_folder):
     """Главная функция для вызова упорядочивания файлов"""
     started_at = time.time()
 
-    # TODO здесь вызов упорядочивания файлов
+    file_ordering = FileOrdering(in_folder=source_folder, out_folder=target_folder)
+    file_ordering.run()
 
     ended_at = time.time()
-    elapsed = round(ended_at - started_at, 4)  # TODO вывести время выполнения в Label
+    elapsed = round(ended_at - started_at, 4)
+    label_information_text['text'] += f'. Упорядочивание файлов выполнено. Заняло {elapsed} секунд'
 
 
 def preparatory_actions():
@@ -91,16 +87,23 @@ def preparatory_actions():
     if not os.path.exists(source_folder):
         label_error_message['text'] += 'Исходной папки не существует! Проверьте правильность ввода.'
         flag_start_opportunity = False
-    print(f'flag_start_opportunity ={flag_start_opportunity}')
 
     target_folder = entry_target_folder.get()
     if not os.path.exists(target_folder):
-        label_error_message['text'] += ' Целевой папки не существует!'
-        flag_start_opportunity = False
+        answer = mb.askyesno(title="Создать целевую папку?", message="Целевой папки нет, создать?")
+        if answer:
+            try:
+                os.makedirs(name=target_folder)
+            except Exception as e:
+                label_error_message['text'] += f' Ошибка при создание целевой папки! {e.args} '
+        else:
+            label_error_message['text'] += ' Целевой папки не существует!'
+            flag_start_opportunity = False
 
     if flag_start_opportunity:
         count_file_number(source_folder)
         arrange_files(source_folder=source_folder, target_folder=target_folder)
+        # TODO при работе FileOrdering зависает окно, подумать что бы окно не зависало
 
 
 
@@ -129,14 +132,14 @@ entry_target_folder.place(x=40, y=80)
 button_choice_source_folder = Button(text='Выбрать целевую папку', command=choice_target_folder)
 button_choice_source_folder.place(x=550, y=75)
 
-button_count_files_number = Button(text="Посчитать количество файлов", command=count_file_number)
-button_count_files_number.place(x=60, y=110)
-
 button_start = Button(text="Упорядочить", command=preparatory_actions)
-button_start.place(x=60, y=140)
+button_start.place(x=50, y=115)
 
-label_information_message = Label(root)
-label_information_message.place(x=60, y=160)
+label_source_file_count = Label(root)
+label_source_file_count.place(x=60, y=160)
+
+label_information_text = Label(root)
+label_information_text.place(x=60, y=180)
 
 label_error_message = Label(root)
 label_error_message.place(x=60, y=200)
