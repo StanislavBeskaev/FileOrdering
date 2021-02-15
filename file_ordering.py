@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""Исходный код упорядочивателя файлов"""
+
 
 import os
 import shutil

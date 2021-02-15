@@ -1,9 +1,42 @@
 import os
+import shutil
+from datetime import time
 from tkinter import *
 from tkinter import filedialog as fd
 from tkinter import messagebox as mb
 
-from file_ordering import FileOrdering
+
+class FileOrdering:
+
+    def __init__(self, in_folder, out_folder):
+        self.in_folder = in_folder
+        self.out_folder = out_folder
+
+    def run(self):
+        count = 0
+        for dirpath, dirnames, filenames in os.walk(self.in_folder):
+            for file_name in filenames:
+                count += 1
+                print(file_name)  # TODO выводить в label
+                file_path = os.path.join(dirpath, file_name)
+                file_modify_time = time.gmtime(os.path.getmtime(file_path))
+
+                file_modify_year = str(file_modify_time.tm_year)
+                if file_modify_time.tm_mon < 10:
+                    file_modify_month = '0' + str(file_modify_time.tm_mon)
+                else:
+                    file_modify_month = str(file_modify_time.tm_mon)
+                file_modify_day = str(file_modify_time.tm_mday)
+
+                file_year_month_target_path = os.path.join(self.out_folder, file_modify_year, file_modify_month, file_modify_day)
+
+                if os.path.exists(file_year_month_target_path):
+                    directory_to_copy = file_year_month_target_path
+                    shutil.copy2(src=file_path, dst=directory_to_copy)
+                else:
+                    new_directory = file_year_month_target_path
+                    os.makedirs(name=new_directory, exist_ok=True)
+                    shutil.copy2(src=file_path, dst=new_directory)
 
 
 def clear_text():
@@ -12,45 +45,12 @@ def clear_text():
         text.delete(1.0, END)
 
 
-def insertText():
-    try:
-        file_name = fd.askopenfilename()
-        f = open(file_name)
-        s = f.read()
-        text.insert(1.0, s)
-        f.close()
-    except FileNotFoundError:
-        mb.showwarning('Ошибка', 'Не указан файл для открытия')
-
-
-def extractText():
-    try:
-        file_name = fd.asksaveasfilename(filetypes=(("TXT files", "*.txt"),
-                                                    ("HTML files", "*.html;*.htm"),
-                                                    ("All files", "*.*")))
-        f = open(file_name, 'w')
-        s = text.get(1.0, END)
-        f.write(s)
-        f.close()
-    except FileNotFoundError:
-        mb.showwarning('Ошибка', 'Не указан файл для сохранения. Данные не сохранены')
-
-
-def load_folder():
-    try:
-        folder_path = fd.askopenfilename()
-
-
-    except FileNotFoundError:
-        mb.showwarning('Ошибка', 'Не указан файл для открытия')
-
-
 def count_file_number():
     try:
         folder_path = entry_source_folder.get()
         folder_path = os.path.normpath(folder_path)
         if os.path.exists(folder_path) and folder_path != '.':
-            label_error_message['text'] = 'Такой путь сущестует'
+            label_error_message['text'] = 'Такой путь сущестует'  # TODO Удалить после отладки
             count = 0
             for dirpath, dirnames, filenames in os.walk(folder_path):
                 for file_name in filenames:
@@ -82,6 +82,18 @@ def choice_target_folder():
         entry_target_folder.insert(0, target_path)
 
 
+def arrange_files():
+    """Главная функция для вызова упорядочивания файлов"""
+    started_at = time.time()
+
+    # TODO здесь вызов упорядочивания файлов
+
+    ended_at = time.time()
+    elapsed = round(ended_at - started_at, 4)  # TODO вывести время выполнения в Label
+
+
+# TODO обернуть всё в main, после окончания разработки
+# def main():
 
 root = Tk()
 root.title("Упорядочиватель файлов")
@@ -112,3 +124,8 @@ label_error_message = Label(root)
 label_error_message.place(x=60, y=190)
 
 root.mainloop()
+
+
+# Вызывать в main
+# if __name__ == '__main__':
+#     main()
