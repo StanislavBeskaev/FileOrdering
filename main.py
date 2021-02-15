@@ -1,6 +1,6 @@
 import os
 import shutil
-from datetime import time
+import time
 from tkinter import *
 from tkinter import filedialog as fd
 from tkinter import messagebox as mb
@@ -45,25 +45,14 @@ def clear_text():
         text.delete(1.0, END)
 
 
-def count_file_number():
-    try:
-        folder_path = entry_source_folder.get()
-        folder_path = os.path.normpath(folder_path)
-        if os.path.exists(folder_path) and folder_path != '.':
-            label_error_message['text'] = 'Такой путь сущестует'  # TODO Удалить после отладки
-            count = 0
-            for dirpath, dirnames, filenames in os.walk(folder_path):
-                for file_name in filenames:
-                    count += 1
-                    label_information_message['text'] = f'В этой папке {count} файлов'
+def count_file_number(path):
+    count_files = 1
+    label_information_message['text'] = 'Идёт подсчёт количества файлов'
+    for dirpath, dirnames, filenames in os.walk(path):
+        for file_name in filenames:
+            count_files += 1
 
-
-        else:
-            label_information_message['text'] = ''
-            label_error_message['text'] = 'Такого пути не сущесвует'
-
-    except EXCEPTION as e:
-        print(f'Произошла ошибка: {e}')
+    label_information_message['text'] = f'В этой папке {count_files} файлов'
 
 
 def choice_source_folder():
@@ -71,6 +60,7 @@ def choice_source_folder():
     source_path = fd.askdirectory()
     if source_path:
         entry_source_folder.delete(0, "end")  # очистка поля для ввода исходной папки
+        source_path = os.path.normpath(source_path)
         entry_source_folder.insert(0, source_path)  # вставка выбраного пути
 
 
@@ -78,11 +68,12 @@ def choice_target_folder():
     """Метод для выбора целевой папки с файлами через кнопку выбора"""
     target_path = fd.askdirectory()
     if target_path:
+        target_path = os.path.normpath(target_path)
         entry_target_folder.delete(0, "end")  # очистка поля для ввода конечной папки
         entry_target_folder.insert(0, target_path)
 
 
-def arrange_files():
+def arrange_files(source_folder, target_folder):
     """Главная функция для вызова упорядочивания файлов"""
     started_at = time.time()
 
@@ -90,6 +81,27 @@ def arrange_files():
 
     ended_at = time.time()
     elapsed = round(ended_at - started_at, 4)  # TODO вывести время выполнения в Label
+
+
+def preparatory_actions():
+    """Метод для проверки корректности введёных путей"""
+    label_error_message['text'] = ''
+    source_folder = entry_source_folder.get()
+    flag_start_opportunity = True
+    if not os.path.exists(source_folder):
+        label_error_message['text'] += 'Исходной папки не существует! Проверьте правильность ввода.'
+        flag_start_opportunity = False
+    print(f'flag_start_opportunity ={flag_start_opportunity}')
+
+    target_folder = entry_target_folder.get()
+    if not os.path.exists(target_folder):
+        label_error_message['text'] += ' Целевой папки не существует!'
+        flag_start_opportunity = False
+
+    if flag_start_opportunity:
+        count_file_number(source_folder)
+        arrange_files(source_folder=source_folder, target_folder=target_folder)
+
 
 
 # TODO обернуть всё в main, после окончания разработки
@@ -105,7 +117,7 @@ label_source_folder.place(x=50, y=5)
 entry_source_folder = Entry(root, width=80)
 entry_source_folder.place(x=40, y=25)
 
-button_choice_source_folder = Button(text='Выбрать папку', command=choice_source_folder)
+button_choice_source_folder = Button(text='Выбрать исходную папку', command=choice_source_folder)
 button_choice_source_folder.place(x=550, y=20)
 
 label_target_folder = Label(root, text='Укажите папку куда положить упорядоченные файлы')
@@ -114,14 +126,20 @@ label_target_folder.place(x=50, y=55)
 entry_target_folder = Entry(root, width=80)
 entry_target_folder.place(x=40, y=80)
 
+button_choice_source_folder = Button(text='Выбрать целевую папку', command=choice_target_folder)
+button_choice_source_folder.place(x=550, y=75)
+
 button_count_files_number = Button(text="Посчитать количество файлов", command=count_file_number)
 button_count_files_number.place(x=60, y=110)
 
+button_start = Button(text="Упорядочить", command=preparatory_actions)
+button_start.place(x=60, y=140)
+
 label_information_message = Label(root)
-label_information_message.place(x=60, y=150)
+label_information_message.place(x=60, y=160)
 
 label_error_message = Label(root)
-label_error_message.place(x=60, y=190)
+label_error_message.place(x=60, y=200)
 
 root.mainloop()
 
