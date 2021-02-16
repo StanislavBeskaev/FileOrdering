@@ -8,28 +8,34 @@ from tkinter import messagebox as mb
 
 
 class FileOrderingWindow:
+    """
+    Класс для отображения окна для упорядочивания файлов
+    """
+    Y_SOURCE_PATH = 25
+    Y_TARGET_PATH = 100
+
     def __init__(self):
         self.root = Tk()
         self.root.title("Упорядочиватель файлов")
         self.root.minsize(width=800, height=600)
 
-        self.label_source_folder = Label(self.root, text='Укажите папку с файлами')
+        self.label_source_folder = Label(self.root, text='Укажите папку откуда нужно взять файлы')
         self.label_source_folder.place(x=50, y=5)
 
         self.entry_source_folder = Entry(self.root, width=80)
-        self.entry_source_folder.place(x=40, y=25)
+        self.entry_source_folder.place(x=40, y=self.Y_SOURCE_PATH)
 
         self.button_choice_source_folder = Button(self.root, text='Выбрать исходную папку', command=self.choice_source_folder)
-        self.button_choice_source_folder.place(x=550, y=20)
+        self.button_choice_source_folder.place(x=550, y=self.Y_SOURCE_PATH - 5)
 
         self.label_target_folder = Label(self.root, text='Укажите папку куда положить упорядоченные файлы')
-        self.label_target_folder.place(x=50, y=55)
+        self.label_target_folder.place(x=50, y=self.Y_TARGET_PATH - 25)
 
         self.entry_target_folder = Entry(self.root, width=80)
-        self.entry_target_folder.place(x=40, y=80)
+        self.entry_target_folder.place(x=40, y=self.Y_TARGET_PATH)
 
         self.button_choice_source_folder = Button(self.root, text='Выбрать целевую папку', command=self.choice_target_folder)
-        self.button_choice_source_folder.place(x=550, y=75)
+        self.button_choice_source_folder.place(x=550, y=self.Y_TARGET_PATH - 5)
 
         self.button_start = Button(self.root, text="Упорядочить", command=self.preparatory_actions)
         self.button_start.place(x=50, y=115)
@@ -48,6 +54,12 @@ class FileOrderingWindow:
         self.root.mainloop()
 
     def file_ordering(self, in_folder, out_folder):
+        """
+        Метод упорядочивания файлов. Берёт файлы из in_folder и перекладывает их out_folder в подпапку Год/Месяц/день
+        :param in_folder: Папка откуда надо взять файлы
+        :param out_folder: Папка куда нужно переложить файлы и упорядочить по годам/ месяцам/ датам
+        :return:
+        """
         self.files_processed_number = 0
         for dirpath, dirnames, filenames in os.walk(in_folder):
             for file_name in filenames:
@@ -73,6 +85,7 @@ class FileOrderingWindow:
                 self.files_processed_number += 1
 
     def count_file_number(self, path):
+        """Метод для подсчёта количества файлов в папке. Отображает количество файлов в self.label_source_file_count"""
         count_files = 0
         self.label_source_file_count['text'] = 'Идёт подсчёт количества файлов'
         for dirpath, dirnames, filenames in os.walk(path):
@@ -82,7 +95,7 @@ class FileOrderingWindow:
         self.label_source_file_count['text'] = f'В этой папке {count_files} файлов'
 
     def choice_source_folder(self):
-        """Метод для выбора исходной папки с файлами через кнопку выбора"""
+        """Метод для выбора исходной папки с файлами через кнопку выбора исходной папки """
         source_path = fd.askdirectory(title='Выбрать исходную папку')
         if source_path:
             self.entry_source_folder.delete(0, "end")  # очистка поля для ввода исходной папки
@@ -90,7 +103,7 @@ class FileOrderingWindow:
             self.entry_source_folder.insert(0, source_path)  # вставка выбраного пути
 
     def choice_target_folder(self):
-        """Метод для выбора целевой папки с файлами через кнопку выбора"""
+        """Метод для выбора целевой папки с файлами через кнопку выбора целевой папки"""
         target_path = fd.askdirectory(title='Выбрать целевую папку')
         if target_path:
             target_path = os.path.normpath(target_path)
@@ -98,14 +111,24 @@ class FileOrderingWindow:
             self.entry_target_folder.insert(0, target_path)
 
     def arrange_files(self, source_folder, target_folder):
-        """Главная функция для вызова упорядочивания файлов"""
-        started_at = time.time()
+        """Главный метод для вызова упорядочивания файлов, также засекает время начало работы"""
+        self.started_at = time.time()
 
-        self.file_ordering(in_folder=source_folder, out_folder=target_folder)
+        file_ordering_thread = threading.Thread(target=self.file_ordering, args=(source_folder, target_folder))
+        file_ordering_thread.start()
+        self.check_file_ordering_thread(file_ordering_thread)
 
-        ended_at = time.time()
-        elapsed = round(ended_at - started_at, 4)
-        self.label_information_text['text'] += f'. Упорядочивание файлов выполнено. Заняло {elapsed} секунд'
+    def check_file_ordering_thread(self, thread):
+        """Метод, проверяет работает ли поток по упорядочиванию файлов и обновляет счётчик обработанных файлов.
+        По окончанию работы потока, выводится информация в self.label_information_text и потребовавшееся время"""
+        if thread.is_alive():
+            self.label_information_text['text'] = f'Упорядочивание файлов в процессе, обработанно {self.files_processed_number} файлов'
+            self.label_information_text.after(100, lambda: self.check_file_ordering_thread(thread))
+
+        else:
+            self.ended_at = time.time()
+            elapsed = round(self.ended_at - self.started_at, 4)
+            self.label_information_text['text'] = f'Упорядочивание файлов выполнено. Заняло {elapsed} секунд'
 
     def preparatory_actions(self):
         """Метод для проверки корректности введёных путей"""
