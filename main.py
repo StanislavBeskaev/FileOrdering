@@ -138,9 +138,12 @@ class FileOrderingWindow:
             self.label_information_text['text'] = f'Упорядочивание файлов выполнено. Заняло {elapsed} секунд'
 
     def check_source_target_paths(self):
+        """
+        Метод проверяет корректность введённых путей
+        :return: Корректность введённых путей(True/False)
+        """
         self.label_error_message['text'] = ''
         is_correct_paths = True
-        self.label_error_message['text'] = ''
         source_folder = self.entry_source_folder.get()
         is_correct_paths = True
         if not os.path.exists(source_folder):
@@ -149,7 +152,7 @@ class FileOrderingWindow:
 
         target_folder = self.entry_target_folder.get()
 
-        # Если указан не абсолютный путь, то это некорректный путь
+        # Если указан не абсолютный путь к целевой папке, то это некорректный путь
         if os.path.normpath(target_folder) != os.path.abspath(target_folder):
             is_correct_paths = False
             self.label_target_folder_error['text'] = 'Неккоретный путь!'
