@@ -97,7 +97,7 @@ class FileOrderingWindow:
             for file_name in filenames:
                 count_files += 1
 
-        self.label_source_file_count['text'] = f'В этой папке {count_files} файлов'
+        self.label_source_file_count['text'] = f'В исходной папке {count_files} файлов'
 
     def choice_source_folder(self):
         """Метод для выбора исходной папки с файлами через кнопку выбора исходной папки """
