@@ -117,10 +117,11 @@ class FileOrderingWindow:
             self.entry_target_folder.insert(0, target_path)
             self.label_target_folder_error['text'] = ''
 
-    def arrange_files(self, source_folder, target_folder):
+    def start_arrange_files(self, source_folder, target_folder):
         """Главный метод для вызова упорядочивания файлов, также засекает время начало работы"""
         self.started_at = time.time()
 
+        # упорядочивание файлов запускается в отдельном потоке, что бы не блокировать окно программы
         file_ordering_thread = threading.Thread(target=self.file_ordering, args=(source_folder, target_folder))
         file_ordering_thread.start()
         self.check_file_ordering_thread(file_ordering_thread)
@@ -178,7 +179,7 @@ class FileOrderingWindow:
             target_folder = self.entry_target_folder.get()
             self.clear_information_label_text()
             self.count_file_number(source_folder)
-            self.arrange_files(source_folder=source_folder, target_folder=target_folder)
+            self.start_arrange_files(source_folder=source_folder, target_folder=target_folder)
         else:
             self.label_error_message['text'] += 'Укажите корректные пути!'
 
