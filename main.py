@@ -137,28 +137,42 @@ class FileOrderingWindow:
             elapsed = round(self.ended_at - self.started_at, 4)
             self.label_information_text['text'] = f'Упорядочивание файлов выполнено. Заняло {elapsed} секунд'
 
-    def preparatory_actions(self):
-        """Метод для проверки корректности введёных путей"""
+    def check_source_target_paths(self):
+        self.label_error_message['text'] = ''
+        is_correct_paths = True
         self.label_error_message['text'] = ''
         source_folder = self.entry_source_folder.get()
-        flag_start_opportunity = True
+        is_correct_paths = True
         if not os.path.exists(source_folder):
             self.label_source_folder_error['text'] = 'Исходной папки не существует! Проверьте правильность ввода.'
-            flag_start_opportunity = False
+            is_correct_paths = False
 
         target_folder = self.entry_target_folder.get()
-        if not os.path.exists(target_folder) or target_folder == '':
+
+        # Если указан не абсолютный путь, то это некорректный путь
+        if os.path.normpath(target_folder) != os.path.abspath(target_folder):
+            is_correct_paths = False
+            self.label_target_folder_error['text'] = 'Неккоретный путь!'
+
+        if not os.path.exists(target_folder) and is_correct_paths:
             answer = mb.askyesno(title="Создать целевую папку?", message="Целевой папки нет, создать?")
             if answer:
                 try:
                     os.makedirs(name=target_folder)
                 except Exception as e:
-                    self.label_target_folder_error['text'] += f' Ошибка при создание целевой папки! {e.args} '
+                    is_correct_paths = False
+                    self.label_target_folder_error['text'] = f' Ошибка при создание целевой папки! {e.args} '
             else:
                 self.label_target_folder_error['text'] = 'Целевой папки не существует!'
-                flag_start_opportunity = False
+                is_correct_paths = False
+        return is_correct_paths
 
-        if flag_start_opportunity:
+    def preparatory_actions(self):
+        """Метод проверяет готовность к запуску, и запускает упорядочивание файлов если проверки выполнены"""
+        is_correct_paths = self.check_source_target_paths()
+        if is_correct_paths:
+            source_folder = self.entry_source_folder.get()
+            target_folder = self.entry_target_folder.get()
             self.clear_information_label_text()
             self.count_file_number(source_folder)
             self.arrange_files(source_folder=source_folder, target_folder=target_folder)
@@ -166,6 +180,10 @@ class FileOrderingWindow:
             self.label_error_message['text'] += 'Укажите корректные пути!'
 
     def clear_information_label_text(self):
+        """
+        Метод очистки информационных сообщений и сообщений об ошибках
+        :return:
+        """
         self.label_source_folder_error['text'] = ''
         self.label_target_folder_error['text'] = ''
         self.label_error_message['text'] = ''
