@@ -13,6 +13,9 @@ class FileOrderingWindow:
     """
     Y_SOURCE_PATH = 25
     Y_TARGET_PATH = 100
+    Y_FILE_COUNT_LABEL = 180
+    Y_INFORMATION_LABEL = 200
+    Y_ERROR_MESSAGE = 220
 
     def __init__(self):
         self.root = Tk()
@@ -21,33 +24,35 @@ class FileOrderingWindow:
 
         self.label_source_folder = Label(self.root, text='Укажите папку откуда нужно взять файлы')
         self.label_source_folder.place(x=50, y=5)
-
         self.entry_source_folder = Entry(self.root, width=80)
         self.entry_source_folder.place(x=40, y=self.Y_SOURCE_PATH)
+        self.label_source_folder_error = Label(self.root, fg='red')
+        self.label_source_folder_error.place(x=50, y=self.Y_SOURCE_PATH + 20)
 
         self.button_choice_source_folder = Button(self.root, text='Выбрать исходную папку', command=self.choice_source_folder)
         self.button_choice_source_folder.place(x=550, y=self.Y_SOURCE_PATH - 5)
 
         self.label_target_folder = Label(self.root, text='Укажите папку куда положить упорядоченные файлы')
         self.label_target_folder.place(x=50, y=self.Y_TARGET_PATH - 25)
-
         self.entry_target_folder = Entry(self.root, width=80)
         self.entry_target_folder.place(x=40, y=self.Y_TARGET_PATH)
+        self.label_target_folder_error = Label(self.root, fg='red')
+        self.label_target_folder_error.place(x=50, y=self.Y_TARGET_PATH + 20)
 
         self.button_choice_source_folder = Button(self.root, text='Выбрать целевую папку', command=self.choice_target_folder)
         self.button_choice_source_folder.place(x=550, y=self.Y_TARGET_PATH - 5)
 
         self.button_start = Button(self.root, text="Упорядочить", command=self.preparatory_actions)
-        self.button_start.place(x=50, y=115)
+        self.button_start.place(x=50, y=self.Y_TARGET_PATH + 50)
 
         self.label_source_file_count = Label(self.root)
-        self.label_source_file_count.place(x=60, y=160)
+        self.label_source_file_count.place(x=60, y=self.Y_FILE_COUNT_LABEL)
 
         self.label_information_text = Label(self.root)
-        self.label_information_text.place(x=60, y=180)
+        self.label_information_text.place(x=60, y=self.Y_INFORMATION_LABEL)
 
-        self.label_error_message = Label(self.root)
-        self.label_error_message.place(x=60, y=200)
+        self.label_error_message = Label(self.root, fg='red')
+        self.label_error_message.place(x=60, y=self.Y_ERROR_MESSAGE)
 
         self.files_processed_number = 0
 
@@ -101,6 +106,7 @@ class FileOrderingWindow:
             self.entry_source_folder.delete(0, "end")  # очистка поля для ввода исходной папки
             source_path = os.path.normpath(source_path)
             self.entry_source_folder.insert(0, source_path)  # вставка выбраного пути
+            self.label_source_folder_error['text'] = ''
 
     def choice_target_folder(self):
         """Метод для выбора целевой папки с файлами через кнопку выбора целевой папки"""
@@ -109,6 +115,7 @@ class FileOrderingWindow:
             target_path = os.path.normpath(target_path)
             self.entry_target_folder.delete(0, "end")  # очистка поля для ввода конечной папки
             self.entry_target_folder.insert(0, target_path)
+            self.label_target_folder_error['text'] = ''
 
     def arrange_files(self, source_folder, target_folder):
         """Главный метод для вызова упорядочивания файлов, также засекает время начало работы"""
@@ -136,26 +143,33 @@ class FileOrderingWindow:
         source_folder = self.entry_source_folder.get()
         flag_start_opportunity = True
         if not os.path.exists(source_folder):
-            self.label_error_message['text'] += 'Исходной папки не существует! Проверьте правильность ввода.'
+            self.label_source_folder_error['text'] = 'Исходной папки не существует! Проверьте правильность ввода.'
             flag_start_opportunity = False
 
         target_folder = self.entry_target_folder.get()
-        if not os.path.exists(target_folder):
+        if not os.path.exists(target_folder) or target_folder == '':
             answer = mb.askyesno(title="Создать целевую папку?", message="Целевой папки нет, создать?")
             if answer:
                 try:
                     os.makedirs(name=target_folder)
                 except Exception as e:
-                    self.label_error_message['text'] += f' Ошибка при создание целевой папки! {e.args} '
+                    self.label_target_folder_error['text'] += f' Ошибка при создание целевой папки! {e.args} '
             else:
-                self.label_error_message['text'] += ' Целевой папки не существует!'
+                self.label_target_folder_error['text'] = 'Целевой папки не существует!'
                 flag_start_opportunity = False
 
         if flag_start_opportunity:
+            self.clear_information_label_text()
             self.count_file_number(source_folder)
-            self.label_information_text['text'] = ''
             self.arrange_files(source_folder=source_folder, target_folder=target_folder)
-            # TODO при работе FileOrdering зависает окно, подумать что бы окно не зависало
+        else:
+            self.label_error_message['text'] += 'Укажите корректные пути!'
+
+    def clear_information_label_text(self):
+        self.label_source_folder_error['text'] = ''
+        self.label_target_folder_error['text'] = ''
+        self.label_error_message['text'] = ''
+        self.label_information_text['text'] = ''
 
 
 def main():
