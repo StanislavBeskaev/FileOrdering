@@ -15,9 +15,10 @@ class FileOrderingWindow:
     Y_SOURCE_PATH = 25
     Y_TARGET_PATH = 100
     Y_FILTER_DATE = 170
-    Y_FILE_COUNT_LABEL = 250
-    Y_INFORMATION_LABEL = 270
-    Y_ERROR_MESSAGE = 300
+    Y_BUTTON_START = 220
+    Y_FILE_COUNT_LABEL = 270
+    Y_INFORMATION_LABEL = 300
+    Y_ERROR_MESSAGE = 330
     DATE_FORMAT = '%d.%m.%Y'
 
     def __init__(self):
@@ -56,7 +57,9 @@ class FileOrderingWindow:
         self.label_date_filter_error.place(x=50, y=self.Y_FILTER_DATE + 20)
 
         self.button_start = Button(self.root, text="Упорядочить", command=self.preparatory_actions)
-        self.button_start.place(x=50, y=self.Y_FILTER_DATE + 50)
+        self.button_start.place(x=50, y=self.Y_BUTTON_START)
+
+        self.button_stop = Button(self.root, text="Остановить", command=self.stop_ordering, fg='red')
 
         self.label_source_file_count = Label(self.root)
         self.label_source_file_count.place(x=60, y=self.Y_FILE_COUNT_LABEL)
@@ -69,9 +72,13 @@ class FileOrderingWindow:
 
         self.files_processed_number = 0
 
-        # TODO добавить кнопку для остановки упорядочивания процесса
+        self.user_ordering_break = False  # принудительная остановка упорядочивания файлов
 
         self.root.mainloop()
+
+    def stop_ordering(self):
+        """Метод для остановки упорядочивания файлов"""
+        self.user_ordering_break = True
 
     def file_ordering(self, in_folder, out_folder, filter_date=None):
         """
@@ -85,6 +92,8 @@ class FileOrderingWindow:
         self.files_processed_number = 0
         for dirpath, dirnames, filenames in os.walk(in_folder):
             for file_name in filenames:
+                if self.user_ordering_break:  # если была нажата кнопка "Остановить", то прекращаем выполнение потока
+                    return
                 file_path = os.path.join(dirpath, file_name)
                 file_modify_time = time.gmtime(os.path.getmtime(file_path))
                 file_modify_date = datetime.datetime.fromtimestamp(time.mktime(file_modify_time))
@@ -123,7 +132,10 @@ class FileOrderingWindow:
                     continue
                 count_files += 1
 
-        self.label_source_file_count['text'] = f'В исходной папке {count_files} файлов'
+        self.label_source_file_count['text'] = f'{count_files} файлов для упорядочивания'
+        filter_date = self.entry_filter_date.get()
+        if self.entry_filter_date.get():
+            self.label_source_file_count['text'] += f', с даты {filter_date}'
 
     def choice_source_folder(self):
         """Метод для выбора исходной папки с файлами через кнопку выбора исходной папки """
@@ -157,14 +169,23 @@ class FileOrderingWindow:
         """Метод, проверяет работает ли поток по упорядочиванию файлов и обновляет счётчик обработанных файлов.
         По окончанию работы потока, выводится информация в self.label_information_text и потребовавшееся время"""
         if thread.is_alive():
+            current_ordering_duration = round(time.time() - self.started_at, 2)
             self.label_information_text[
-                'text'] = f'Упорядочивание файлов в процессе, обработанно {self.files_processed_number} файлов'
+                'text'] = f'Упорядочивание файлов в процессе, прошло {current_ordering_duration} сек,' \
+                          f' обработано {self.files_processed_number} файлов'
             self.label_information_text.after(100, lambda: self.check_file_ordering_thread(thread))
-
+        elif not thread.is_alive() and self.user_ordering_break:
+            self.ended_at = time.time()
+            elapsed = round(self.ended_at - self.started_at, 2)
+            self.label_information_text['text'] = f'Прервано. упорядочивание работало {elapsed} секунд,' \
+                                                  f' упорядочило {self.files_processed_number} файлов'
+            self.label_error_message['text'] = 'Прервано пользователем'
+            self.button_stop.place_forget()
         else:
             self.ended_at = time.time()
             elapsed = round(self.ended_at - self.started_at, 4)
             self.label_information_text['text'] = f'Упорядочивание файлов выполнено. Заняло {elapsed} секунд'
+            self.button_stop.place_forget()
 
     def check_source_target_paths(self) -> bool:
         """
@@ -210,6 +231,8 @@ class FileOrderingWindow:
             if filter_date:
                 filter_date = datetime.datetime.strptime(filter_date, self.DATE_FORMAT)
             self.clear_information_label_text()
+            self.user_ordering_break = False
+            self.button_stop.place(x=200, y=self.Y_BUTTON_START)
             self.count_file_number(source_folder, filter_date)
             self.start_arrange_files(source_folder=source_folder, target_folder=target_folder,
                                      filter_date=filter_date)
